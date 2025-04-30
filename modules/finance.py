@@ -15,7 +15,22 @@ class FinanceManager:
         # Данные сохраняются через UserManager
         pass
 
-    def add_transaction(self):
+    def add_transaction(self, amount, transaction_type, category, description="", date=None):
+        if date is None:
+            date = datetime.now().strftime("%Y-%m-%d")
+            
+        transaction = {
+            "type": transaction_type,
+            "category": category,
+            "amount": amount,
+            "description": description,
+            "date": date
+        }
+        
+        self.transactions.append(transaction)
+        return transaction
+
+    def add_transaction_interactive(self):
         print("\n=== Добавление транзакции ===")
         print("1. Доход")
         print("2. Расход")
@@ -47,16 +62,7 @@ class FinanceManager:
         description = input("Введите описание: ")
         date = input("Введите дату (YYYY-MM-DD) [по умолчанию сегодня]: ") or datetime.now().strftime("%Y-%m-%d")
         
-        transaction = {
-            "type": transaction_type,
-            "category": category,
-            "amount": amount,
-            "description": description,
-            "date": date
-        }
-        
-        self.transactions.append(transaction)
-        print("Транзакция успешно добавлена")
+        return self.add_transaction(amount, transaction_type, category, description, date)
 
     def view_history(self):
         if not self.transactions:
@@ -77,9 +83,9 @@ class FinanceManager:
             choice = input("Выберите действие: ")
 
             if choice == "1":
-                self.add_transaction()
+                self.add_transaction_interactive()
             elif choice == "2":
-                self.add_transaction()
+                self.add_transaction_interactive()
             elif choice == "3":
                 self.view_history()
             elif choice == "0":

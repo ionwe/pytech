@@ -11,6 +11,18 @@ class GoalManager:
         # Данные сохраняются через UserManager
         pass
 
+    def set_goal(self, name, target_amount, deadline, current_amount=0):
+        goal = {
+            "name": name,
+            "target_amount": target_amount,
+            "current_amount": current_amount,
+            "deadline": deadline.strftime("%Y-%m-%d") if isinstance(deadline, datetime) else deadline,
+            "completed": False
+        }
+        
+        self.goals.append(goal)
+        return goal
+
     def add_goal(self):
         print("\n=== Добавление цели ===")
         name = input("Название цели: ")
@@ -18,16 +30,7 @@ class GoalManager:
         current_amount = float(input("Текущая сумма: "))
         deadline = input("Срок (YYYY-MM-DD): ")
         
-        goal = {
-            "name": name,
-            "target_amount": target_amount,
-            "current_amount": current_amount,
-            "deadline": deadline,
-            "completed": False
-        }
-        
-        self.goals.append(goal)
-        print("Цель успешно добавлена")
+        return self.set_goal(name, target_amount, deadline, current_amount)
 
     def add_progress(self):
         if not self.goals:

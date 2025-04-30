@@ -14,6 +14,20 @@ class IntegrationManager:
         self.integrations = user['data']['integrations']
         self.SCOPES = ['https://www.googleapis.com/auth/calendar']
 
+    def sync_bank_account(self, account_name):
+        if account_name not in self.integrations:
+            integration = {
+                "service": "Банковский счет",
+                "account_name": account_name,
+                "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "last_sync": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+            self.integrations[account_name] = integration
+            return integration
+        else:
+            self.integrations[account_name]["last_sync"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            return self.integrations[account_name]
+
     def import_from_csv(self):
         print("\n=== Импорт данных из CSV ===")
         file_path = input("Введите путь к CSV файлу: ")

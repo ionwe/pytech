@@ -17,6 +17,9 @@ class NotificationManager:
         # Данные сохраняются через UserManager
         pass
 
+    def send_notification(self, message, notification_type="info"):
+        return self.add_notification(message, notification_type)
+
     def add_notification(self, message, notification_type="info"):
         notification = {
             "message": message,
@@ -25,6 +28,7 @@ class NotificationManager:
             "read": False
         }
         self.notifications.append(notification)
+        return notification
 
     def check_data_entry_reminder(self):
         if not self.last_data_entry:

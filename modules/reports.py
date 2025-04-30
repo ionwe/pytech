@@ -6,6 +6,8 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.platypus import Table, TableStyle
+from .finance import FinanceManager
+from .goals import GoalManager
 
 class ReportManager:
     def __init__(self, user):
