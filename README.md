@@ -16,8 +16,8 @@
 
 1. Клонируйте репозиторий:
 ```bash
-git clone https://github.com/yourusername/finance-manager.git
-cd finance-manager
+git clone https://github.com/username/pytech.git
+cd pytech
 ```
 
 2. Создайте виртуальное окружение и активируйте его:
@@ -51,7 +51,7 @@ python main.py
 Структура проекта
 
 ```
-finance-manager/
+pytech/
 ├── modules/
 │   ├── user_management.py
 │   ├── finance.py
