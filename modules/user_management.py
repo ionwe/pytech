@@ -32,6 +32,67 @@ class UserManager:
         with open(avatar_path, "rb") as image_file:
             return base64.b64encode(image_file.read()).decode('utf-8')
 
+    def _decode_avatar(self, avatar_base64):
+        if not avatar_base64:
+            return None
+        try:
+            return base64.b64decode(avatar_base64)
+        except:
+            return None
+
+    def _display_avatar(self, avatar_data):
+        if not avatar_data:
+            print("┌─────────────┐")
+            print("│             │")
+            print("│     👤      │")
+            print("│             │")
+            print("└─────────────┘")
+            return
+            
+        # Сохраняем временный файл для отображения
+        temp_file = "temp_avatar.png"
+        try:
+            with open(temp_file, "wb") as f:
+                f.write(avatar_data)
+            print(f"\nАватар сохранен как {temp_file}")
+            print("Вы можете открыть его в любом просмотрщике изображений")
+        except Exception as e:
+            print(f"Ошибка при сохранении аватара: {str(e)}")
+
+    def create_user(self, name, email, password, avatar_path=""):
+        if email in self.users_index:
+            raise ValueError("Пользователь с таким email уже существует")
+            
+        avatar = self._encode_avatar(avatar_path)
+            
+        user = {
+            "name": name,
+            "email": email,
+            "password": password,
+            "avatar": avatar,
+            "role": "user",  # По умолчанию обычный пользователь
+            "data": {
+                "transactions": [],
+                "goals": [],
+                "notifications": [],
+                "integrations": {}
+            }
+        }
+        
+        # Сохраняем пользователя в отдельный файл
+        user_file = self._get_user_file(email)
+        with open(user_file, 'w') as f:
+            json.dump(user, f, indent=4)
+            
+        # Обновляем индекс пользователей
+        self.users_index[email] = {
+            "file": user_file,
+            "last_login": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        self._save_users_index()
+        
+        return user
+
     def admin_panel(self):
         print("\n=== Админ-панель ===")
         password = input("Введите пароль админа: ")
@@ -76,36 +137,7 @@ class UserManager:
             return None
 
         avatar_path = input("Введите путь к аватару (оставьте пустым, чтобы пропустить): ")
-        avatar = self._encode_avatar(avatar_path)
-            
-        user = {
-            "name": name,
-            "email": email,
-            "password": password,
-            "avatar": avatar,
-            "role": "user",  # По умолчанию обычный пользователь
-            "data": {
-                "transactions": [],
-                "goals": [],
-                "notifications": [],
-                "integrations": {}
-            }
-        }
-        
-        # Сохраняем пользователя в отдельный файл
-        user_file = self._get_user_file(email)
-        with open(user_file, 'w') as f:
-            json.dump(user, f, indent=4)
-            
-        # Обновляем индекс пользователей
-        self.users_index[email] = {
-            "file": user_file,
-            "last_login": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        }
-        self._save_users_index()
-        
-        print("Регистрация успешна")
-        return user
+        return self.create_user(name, email, password, avatar_path)
 
     def login(self):
         print("\n=== Вход ===")
@@ -132,6 +164,9 @@ class UserManager:
         self.users_index[email]['last_login'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self._save_users_index()
         
+        # Устанавливаем текущего пользователя
+        self.current_user = user
+        
         print("Вход выполнен успешно")
         return user
 
@@ -146,9 +181,86 @@ class UserManager:
     def is_admin(self, user):
         return user.get('role') == 'admin'
 
+    def view_profile(self):
+        if not self.current_user:
+            print("Сначала войдите в систему")
+            return
+            
+        print("\n=== Ваш профиль ===")
+        print(f"Имя: {self.current_user['name']}")
+        print(f"Email: {self.current_user['email']}")
+        print(f"Роль: {self.current_user['role']}")
+        
+        print("\nАватар:")
+        avatar_data = self._decode_avatar(self.current_user['avatar'])
+        self._display_avatar(avatar_data)
+            
+        print("\n1. Изменить аватар")
+        print("2. Просмотреть аватар из CSV")
+        print("3. Назад")
+        choice = input("Выберите действие: ")
+        
+        if choice == "1":
+            self.change_avatar()
+        elif choice == "2":
+            self.view_avatar_from_csv()
+        elif choice != "3":
+            print("Неверный выбор")
+
+    def view_avatar_from_csv(self):
+        if not self.current_user:
+            print("Сначала войдите в систему")
+            return
+            
+        print("\n=== Просмотр аватара из CSV ===")
+        csv_path = input("Введите путь к CSV файлу: ")
+        
+        if not os.path.exists(csv_path):
+            print("Файл не найден")
+            return
+            
+        try:
+            import csv
+            with open(csv_path, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    if row.get('email') == self.current_user['email']:
+                        avatar_base64 = row.get('avatar', '')
+                        if avatar_base64:
+                            avatar_data = self._decode_avatar(avatar_base64)
+                            self._display_avatar(avatar_data)
+                            return
+                print("Аватар не найден в CSV файле")
+        except Exception as e:
+            print(f"Ошибка при чтении CSV файла: {str(e)}")
+
+    def change_avatar(self):
+        if not self.current_user:
+            print("Сначала войдите в систему")
+            return
+            
+        print("\n=== Изменение аватара ===")
+        avatar_path = input("Введите путь к новому аватару (оставьте пустым, чтобы удалить): ")
+        
+        if avatar_path:
+            if not os.path.exists(avatar_path):
+                print("Файл не найден")
+                return
+                
+            try:
+                self.current_user['avatar'] = self._encode_avatar(avatar_path)
+                self.save_data()
+                print("Аватар успешно обновлен")
+            except Exception as e:
+                print(f"Ошибка при обновлении аватара: {str(e)}")
+        else:
+            self.current_user['avatar'] = ""
+            self.save_data()
+            print("Аватар удален")
+
     def menu(self):
         while True:
-            print("\n=== Меню пользователя ===")
+            print("\n=== Главное меню ===")
             print("1. Вход")
             print("2. Регистрация")
             print("3. Админ-панель")
@@ -159,18 +271,57 @@ class UserManager:
                 user = self.login()
                 if user:
                     self.current_user = user
-                    return user
+                    self.main_menu()
             elif choice == "2":
                 user = self.register()
                 if user:
                     self.current_user = user
-                    return user
+                    self.main_menu()
             elif choice == "3":
                 user = self.admin_panel()
                 if user:
                     self.current_user = user
-                    return user
+                    self.main_menu()
             elif choice == "0":
                 return None
+            else:
+                print("Неверный выбор")
+
+    def main_menu(self):
+        while True:
+            print("\n=== Главное меню ===")
+            print("1. Просмотр профиля")
+            print("2. Финансы")
+            print("3. Цели")
+            print("4. Аналитика")
+            print("5. Отчеты")
+            print("6. Уведомления")
+            print("7. Интеграции")
+            print("0. Выход")
+            choice = input("Выберите действие: ")
+
+            if choice == "1":
+                self.view_profile()
+            elif choice == "2":
+                # Здесь будет вызов меню финансов
+                pass
+            elif choice == "3":
+                # Здесь будет вызов меню целей
+                pass
+            elif choice == "4":
+                # Здесь будет вызов меню аналитики
+                pass
+            elif choice == "5":
+                # Здесь будет вызов меню отчетов
+                pass
+            elif choice == "6":
+                # Здесь будет вызов меню уведомлений
+                pass
+            elif choice == "7":
+                # Здесь будет вызов меню интеграций
+                pass
+            elif choice == "0":
+                self.current_user = None
+                return
             else:
                 print("Неверный выбор")
